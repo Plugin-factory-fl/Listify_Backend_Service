@@ -56,8 +56,11 @@ app.post('/seller-sales', async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    logger.error({ err }, 'Failed to handle /seller-sales');
-    res.status(500).json({ error: 'Internal server error' });
+    logger.error({ err, seller: req.body?.seller }, 'Failed to handle /seller-sales');
+    res.status(500).json({
+      error: 'Internal server error',
+      reason: err?.message || 'Unknown error'
+    });
   }
 });
 
