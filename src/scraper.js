@@ -1,4 +1,4 @@
-import cheerio from 'cheerio';
+import { load } from 'cheerio';
 import logger from './logger.js';
 import { createHttpClient } from './utils.js';
 
@@ -40,7 +40,7 @@ export async function scrapeEbaySoldItems (seller) {
   logger.debug({ targetUrl }, 'Fetching seller page');
 
   const { data: html } = await http.get(targetUrl);
-  const $ = cheerio.load(html);
+  const $ = load(html);
 
   const sales = [];
   $('.s-item').each((_, el) => {
