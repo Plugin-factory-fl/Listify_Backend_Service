@@ -16,12 +16,20 @@ export function createHttpClient () {
 
   let agent;
   if (proxyUrl) {
-    const proxy = new URL(proxyUrl);
-    if (proxyUser && proxyPass) {
-      proxy.username = proxyUser;
-      proxy.password = proxyPass;
+    try {
+      const proxy = new URL(proxyUrl);
+
+      const isPlaceholderProxy = proxy.hostname.includes('example.com') || proxy.hostname === 'proxy.example.com';
+      if (!isPlaceholderProxy) {
+        if (proxyUser && proxyPass) {
+          proxy.username = proxyUser;
+          proxy.password = proxyPass;
+        }
+        agent = new HttpsProxyAgent(proxy);
+      }
+    } catch (error) {
+      console.warn('Invalid proxy URL provided, skipping proxy configuration:', proxyUrl, error?.message);
     }
-    agent = new HttpsProxyAgent(proxy);
   }
 
   return axios.create({
