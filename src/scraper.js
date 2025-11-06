@@ -68,10 +68,12 @@ function parseSales (html, timeframeDays) {
   const sales = [];
   const seen = new Set();
 
-  $('.s-item').each((_, element) => {
+  $('li.s-item, li.s-card').each((_, element) => {
     const $el = $(element);
-    const title = cleanText($el.find('.s-item__title').first().text());
-    if (!title || title.toLowerCase().includes('shop on ebay')) return;
+
+    const title = firstNonEmptyText($el, ['.s-item__title', '.s-card__title']);
+    if (!title) return;
+    if (title.toLowerCase().includes('shop on ebay')) return;
 
     const priceInfo = extractPriceInfo($el);
     if (!priceInfo) return;
@@ -82,7 +84,7 @@ function parseSales (html, timeframeDays) {
     soldDate.setHours(0, 0, 0, 0);
     if (soldDate < cutoff) return;
 
-    const listingUrl = $el.find('.s-item__link').attr('href') || null;
+    const listingUrl = firstAttr($el, ['.s-item__link', '.s-card__link'], 'href');
     const dedupeKey = `${title}|${priceInfo.price}|${soldDate.toISOString()}`;
     if (seen.has(dedupeKey)) return;
     seen.add(dedupeKey);
@@ -100,10 +102,11 @@ function parseSales (html, timeframeDays) {
 }
 
 function extractPriceInfo ($el) {
-  const priceText = cleanText(
-    $el.find('.s-item__price').first().text() ||
-    $el.find('.s-item__detail--primary').first().text()
-  );
+  const priceText = firstNonEmptyText($el, [
+    '.s-item__price',
+    '.s-item__detail--primary',
+    '.s-card__price'
+  ]);
 
   if (!priceText) return null;
 
@@ -157,6 +160,7 @@ function extractSoldDate ($el) {
     $el.find('.s-item__title--tagblock').text(),
     $el.find('.s-item__subtitle').text(),
     $el.find('.s-item__details').text(),
+    $el.find('.s-card__caption').text(),
     $el.text()
   ];
 
@@ -222,5 +226,21 @@ function adjustYear (date) {
 function cleanText (value) {
   if (!value) return '';
   return value.replace(/\s+/g, ' ').trim();
+}
+
+function firstNonEmptyText ($root, selectors) {
+  for (const selector of selectors) {
+    const text = cleanText($root.find(selector).first().text());
+    if (text) return text;
+  }
+  return '';
+}
+
+function firstAttr ($root, selectors, attr) {
+  for (const selector of selectors) {
+    const value = $root.find(selector).first().attr(attr);
+    if (value) return value;
+  }
+  return null;
 }
 
