@@ -3,6 +3,7 @@ import express from 'express';
 import helmet from 'helmet';
 import logger from './logger.js';
 import { fetchSellerSales } from './scraper.js';
+import { fetchAmazonProducts } from './amazon-scraper.js';
 
 const PORT = process.env.PORT || 4000;
 const API_SECRET = process.env.API_SECRET;
@@ -57,6 +58,38 @@ app.post('/seller-sales', async (req, res) => {
     res.json(result);
   } catch (err) {
     logger.error({ err, seller: req.body?.seller }, 'Failed to handle /seller-sales');
+    res.status(500).json({
+      error: 'Internal server error',
+      reason: err?.message || 'Unknown error'
+    });
+  }
+});
+
+app.post('/amazon-search', async (req, res) => {
+  try {
+    const authHeader = req.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+    }
+
+    const token = authHeader.slice('Bearer '.length).trim();
+    if (token !== API_SECRET) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const { keywords, options } = req.body || {};
+    if (!keywords || typeof keywords !== 'string') {
+      return res.status(400).json({ error: 'keywords (string) is required' });
+    }
+
+    const result = await fetchAmazonProducts({
+      keywords,
+      options: options || {}
+    });
+
+    res.json(result);
+  } catch (err) {
+    logger.error({ err, keywords: req.body?.keywords }, 'Failed to handle /amazon-search');
     res.status(500).json({
       error: 'Internal server error',
       reason: err?.message || 'Unknown error'
